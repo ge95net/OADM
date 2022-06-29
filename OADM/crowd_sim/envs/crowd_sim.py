@@ -41,11 +41,7 @@ class CrowdSim(gym.Env):
         self.humans = None
         self.global_time = None
         self.human_times = None
-        # reward function
-        self.success_reward = None
-        self.collision_penalty = None
-        self.discomfort_dist = None
-        self.discomfort_penalty_factor = None
+
         # simulation configuration
         self.config = None
         self.case_capacity = None
@@ -114,7 +110,7 @@ class CrowdSim(gym.Env):
 
 
 
-    '''
+
     def generate_random_human_position(self, human_num, rule):
         """
         Generate human position according to certain rule
@@ -270,7 +266,7 @@ class CrowdSim(gym.Env):
                 break
         human.set(px, py, gx, gy, 0, 0, 0)
         return human
-        '''
+
     def get_human_times(self):
         """
         Run the whole simulation to the end and compute the average time for human to reach goal.
@@ -453,19 +449,19 @@ class CrowdSim(gym.Env):
 
         #print("collision=",collision)
         if self.global_time >= self.time_limit - 1:
-            reward = 0
+
             done = True
             info = Timeout()
             if done:
                 print("timeout")
         elif collision:
-            reward = self.collision_penalty
+
             done = True
             info = Collision()
             if done:
                 print("collision")
         elif reaching_goal:
-            reward = self.success_reward
+
             done = True
             info = ReachGoal()
             if done:
@@ -473,11 +469,11 @@ class CrowdSim(gym.Env):
         elif danger:
             # only penalize agent for getting too close if it's visible
             # adjust the reward based on FPS
-            reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
+
             done = False
             info = Danger(dmin)
         else:
-            reward = 0
+
             done = False
             info = Nothing()
 
@@ -530,7 +526,7 @@ class CrowdSim(gym.Env):
 
 
 
-        return ob, reward, done, info
+        return ob, done, info
 
 
 
