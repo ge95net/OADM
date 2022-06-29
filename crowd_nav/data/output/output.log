@@ -1,0 +1,8 @@
+2022-06-27 05:07:18, INFO: Using device: cpu
+2022-06-27 05:07:18, INFO: Policy: CADRL without occupancy map
+2022-06-27 05:07:18, INFO: human number: 5
+2022-06-27 05:07:18, INFO: Not randomize human's radius and preferred speed
+2022-06-27 05:07:18, INFO: Training simulation: circle_crossing, test simulation: circle_crossing
+2022-06-27 05:07:18, INFO: Square width: 10.0, circle width: 4.0
+2022-06-27 05:07:18, INFO: Agent is invisible and has nonholonomic kinematic constraint
+2022-06-27 05:07:18, INFO: Current learning rate: 0.001000
