@@ -1,29 +1,15 @@
-import copy
 import logging
-import os
-import sys
-
 import gym
-import matplotlib.colors
-import matplotlib.lines as mlines
 import numpy as np
 import rvo2
-from matplotlib import patches
 from numpy.linalg import norm
 from crowd_sim.envs.utils.human import Human
 from crowd_sim.envs.utils.info import *
-from crowd_sim.envs.utils.utils import point_to_segment_dist
-sys.path.append('/home/yy/research/cadrl_with_lidar/CrowdNav-master')
-from crowd_sim.envs.CoppeliaAgent.CoppeliaAgent import CoppeliaAgent
 import time
-from crowd_sim.envs.CoppeliaAgent.lidar_data import lidar_data
 from crowd_sim.envs.remoteAPI import sim
-from crowd_sim.envs.utils.state import ObservableState, FullState
 from matplotlib import pyplot as plt
-import seaborn as sns
 from matplotlib.animation import FuncAnimation
 import threading
-from matplotlib import cm
 class CrowdSim(gym.Env):
     metadata = {'render.modes': ['human']}
 
