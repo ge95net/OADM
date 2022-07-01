@@ -12,4 +12,7 @@ python test.py --policy cadrl_with_lidar
 ```
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 25893d04b7dde0d6762f36cdda7f779559a07d1e
