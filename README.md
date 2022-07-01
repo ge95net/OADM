@@ -11,6 +11,5 @@ Obstacle avoidance in dense crowd is a very important but challenging task. Prev
 ```
 python test.py --policy cadrl_with_lidar
 ```
-
-
-
+## Demo of our research
+[Video](https://www.notion.so/Demo-of-our-research-8163dc59759641b4aa6aa99cbe79ea19)
