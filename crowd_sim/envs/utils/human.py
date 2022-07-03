@@ -10,7 +10,7 @@ class Human(Agent):
     def __init__(self, config, section,client):
         super().__init__(config, section)
         self.id = self.counter
-        self.human_num = 5
+        self.human_num = 7
         self.set_client(client,id=self.id)
         self.__class__.counter+=1
         if self.__class__.counter >= self.human_num:

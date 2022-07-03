@@ -18,11 +18,10 @@ class Robot(Agent):
         self.action_map = np.zeros((5,24))
         self.last_map = np.zeros((5,24))
         Robot.init_flag = True
-    def act(self, ob,sign):
+    def act(self, ob):
         if self.policy is None:
             raise AttributeError('Policy attribute has to be set!')
-        if sign ==1:
-            self.last_map = np.zeros((5, 24))
+        self.last_map = np.zeros((5, 24))
         state = JointState(self.get_full_state(), ob)
         robot_orientation = self.get_orientation()          # robot [-pi,pi]
         risk_map, diff_map, map = self.get_lidar_reading(self.last_map)

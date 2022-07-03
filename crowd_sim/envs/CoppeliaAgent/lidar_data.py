@@ -106,7 +106,7 @@ class lidar_data():
 
     def normal_distribution(self,x):
         miu = 0
-        sigma = 2
+        sigma = 3.5
         gaussion = np.exp(-1/2 * (x-miu)**2 / (sigma**2))
         return gaussion
 

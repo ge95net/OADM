@@ -1,15 +1,29 @@
+import copy
 import logging
+import os
+import sys
+
 import gym
+import matplotlib.colors
+import matplotlib.lines as mlines
 import numpy as np
 import rvo2
+from matplotlib import patches
 from numpy.linalg import norm
 from crowd_sim.envs.utils.human import Human
 from crowd_sim.envs.utils.info import *
+from crowd_sim.envs.utils.utils import point_to_segment_dist
+sys.path.append('/home/yy/research/OADM')
+from crowd_sim.envs.CoppeliaAgent.CoppeliaAgent import CoppeliaAgent
 import time
+from crowd_sim.envs.CoppeliaAgent.lidar_data import lidar_data
 from crowd_sim.envs.remoteAPI import sim
+from crowd_sim.envs.utils.state import ObservableState, FullState
 from matplotlib import pyplot as plt
+import seaborn as sns
 from matplotlib.animation import FuncAnimation
 import threading
+from matplotlib import cm
 class CrowdSim(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -27,7 +41,11 @@ class CrowdSim(gym.Env):
         self.humans = None
         self.global_time = None
         self.human_times = None
-
+        # reward function
+        self.success_reward = None
+        self.collision_penalty = None
+        self.discomfort_dist = None
+        self.discomfort_penalty_factor = None
         # simulation configuration
         self.config = None
         self.case_capacity = None
@@ -63,13 +81,19 @@ class CrowdSim(gym.Env):
         self.client = clientID
         self.config = config
         self.time_limit = config.getint('env', 'time_limit')
+        self.time_step = config.getfloat('env', 'time_step')
         self.randomize_attributes = config.getboolean('env', 'randomize_attributes')
+        self.success_reward = config.getfloat('reward', 'success_reward')
+        self.collision_penalty = config.getfloat('reward', 'collision_penalty')
+        self.discomfort_dist = config.getfloat('reward', 'discomfort_dist')
+        self.discomfort_penalty_factor = config.getfloat('reward', 'discomfort_penalty_factor')
         if self.config.get('humans', 'policy') == 'orca':
             self.case_capacity = {'train': np.iinfo(np.uint32).max - 2000, 'val': 1000, 'test': 1000}
             self.case_size = {'train': np.iinfo(np.uint32).max - 2000, 'val': config.getint('env', 'val_size'),
                               'test': config.getint('env', 'test_size')}
             self.train_val_sim = config.get('sim', 'train_val_sim')
             self.test_sim = config.get('sim', 'test_sim')
+            self.square_width = config.getfloat('sim', 'square_width')
             self.circle_radius = config.getfloat('sim', 'circle_radius')
             self.human_num = config.getint('sim', 'human_num')
         else:
@@ -96,7 +120,7 @@ class CrowdSim(gym.Env):
 
 
 
-
+    '''
     def generate_random_human_position(self, human_num, rule):
         """
         Generate human position according to certain rule
@@ -252,7 +276,7 @@ class CrowdSim(gym.Env):
                 break
         human.set(px, py, gx, gy, 0, 0, 0)
         return human
-
+        '''
     def get_human_times(self):
         """
         Run the whole simulation to the end and compute the average time for human to reach goal.
@@ -305,6 +329,7 @@ class CrowdSim(gym.Env):
             gx = human_point[2]
             gy = human_point[3]
             human.set(px, py, gx, gy, 0, 0, 0)
+
             self.humans.append(human)
 
     def reset(self, phase, test_case=None):
@@ -337,23 +362,22 @@ class CrowdSim(gym.Env):
         else:
             counter_offset = {'train': self.case_capacity['val'] + self.case_capacity['test'],
                               'val': 0, 'test': self.case_capacity['val']}
-            self.robot.set(0, -self.circle_radius, 0, self.circle_radius+1, 0, 0, np.pi / 2)
+            self.robot.set(0, -self.circle_radius-1, 0, self.circle_radius+1, 0, 0, np.pi / 2)
             if self.human_num==5:
                 humans_point_data = np.load(
-                    "/home/yy/research/cadrl_with_lidar/CrowdNav-master/crowd_sim/envs/humans_position/five_human_r_4.npy")
+                    "/home/yy/research/OADM/crowd_sim/envs/humans_position/five_human_r_4.npy")
                 humans_point = humans_point_data[self.test_num]
                 self.generate_fixed_human(humans_point)
                 self.test_num = self.test_num + 1
             if self.human_num ==7:
-
                 humans_point_data = np.load(
-                    "/home/yy/research/cadrl_with_lidar/CrowdNav-master/crowd_sim/envs/humans_position/seven_human_r_6.npy")
+                    "/home/yy/research/OADM/crowd_sim/envs/humans_position/seven_human_r_6.npy")
                 humans_point = humans_point_data[self.test_num]
                 self.generate_fixed_human(humans_point)
                 self.test_num = self.test_num + 1
             if self.human_num ==3:
                 humans_point_data = np.load(
-                    "/home/yy/research/cadrl_with_lidar/CrowdNav-master/crowd_sim/envs/humans_position/three_human_r_2.npy")
+                    "/home/yy/research/OADM/crowd_sim/envs/humans_position/three_human_r_2.npy")
                 humans_point = humans_point_data[self.test_num]
                 self.generate_fixed_human(humans_point)
                 self.test_num = self.test_num + 1
@@ -399,9 +423,9 @@ class CrowdSim(gym.Env):
         for human in self.humans:
             # observation for humans is always coordinates
             ob = [other_human.get_observable_state() for other_human in self.humans if other_human != human]
-            #obstacle = ObservableState(0,0,0,0,0.5)
-            #ob += [obstacle]
-            #ob += [self.robot.get_observable_state()]
+            # obstacle = ObservableState(0, 0, 0, 0, 0.5)
+            # ob += [obstacle]
+            # ob += [self.robot.get_observable_state()]
             human_actions.append(human.act(ob))
 
         # collision detection
@@ -435,19 +459,19 @@ class CrowdSim(gym.Env):
 
         #print("collision=",collision)
         if self.global_time >= self.time_limit - 1:
-
+            reward = 0
             done = True
             info = Timeout()
             if done:
                 print("timeout")
         elif collision:
-
+            reward = self.collision_penalty
             done = True
             info = Collision()
             if done:
                 print("collision")
         elif reaching_goal:
-
+            reward = self.success_reward
             done = True
             info = ReachGoal()
             if done:
@@ -455,11 +479,11 @@ class CrowdSim(gym.Env):
         elif danger:
             # only penalize agent for getting too close if it's visible
             # adjust the reward based on FPS
-
+            reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
             done = False
             info = Danger(dmin)
         else:
-
+            reward = 0
             done = False
             info = Nothing()
 
@@ -482,11 +506,12 @@ class CrowdSim(gym.Env):
             step_time = step_endtime - step_starttime
             #time.sleep(0.3-step_time)
             #self.global_time += self.time_step
+            '''
             for i, human in enumerate(self.humans):
                 # only record the first time the human reaches the goal
                 if self.human_times[i] == 0 and human.reached_destination():
                     self.human_times[i] = self.global_time
-
+            '''
             if done  :
                 self.robot.agent.stop()
                 for human in self.humans:
@@ -512,7 +537,7 @@ class CrowdSim(gym.Env):
 
 
 
-        return ob, done, info
+        return ob, reward, done, info
 
 
 

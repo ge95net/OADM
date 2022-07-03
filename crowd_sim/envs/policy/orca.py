@@ -54,8 +54,8 @@ class ORCA(Policy):
         """
         super().__init__()
         self.name = 'ORCA'
-        self.trainable = True
-        self.multiagent_training = True
+        self.trainable = False
+        self.multiagent_training = None
         self.kinematics = 'holonomic'
         self.safety_space = 0.4
         self.neighbor_dist = 10
@@ -65,12 +65,11 @@ class ORCA(Policy):
         self.radius = 0.3
         self.max_speed = 1
         self.sim = None
-        #self.time_step = 0.01
 
     def configure(self, config):
         # self.time_step = config.getfloat('orca', 'time_step')
         # self.neighbor_dist = config.getfloat('orca', 'neighbor_dist')
-        # self.max_neighbors = coRnfig.getint('orca', 'max_neighbors')
+        # self.max_neighbors = config.getint('orca', 'max_neighbors')
         # self.time_horizon = config.getfloat('orca', 'time_horizon')
         # self.time_horizon_obst = config.getfloat('orca', 'time_horizon_obst')
         # self.radius = config.getfloat('orca', 'radius')
@@ -97,13 +96,14 @@ class ORCA(Policy):
             del self.sim
             self.sim = None
         if self.sim is None:
+
             self.sim = rvo2.PyRVOSimulator(self.time_step, *params, self.radius, self.max_speed)
+
             self.sim.addAgent(self_state.position, *params, self_state.radius + self.safety_space,
                               self_state.v_pref, self_state.velocity)
             for human_state in state.human_states:
-                self.sim.addAgent(human_state.position, *params, human_state.radius+ self.safety_space,
+                self.sim.addAgent(human_state.position, *params, human_state.radius + self.safety_space,
                                   self.max_speed, human_state.velocity)
-
         else:
             self.sim.setAgentPosition(0, self_state.position)
             self.sim.setAgentVelocity(0, self_state.velocity)
@@ -129,7 +129,6 @@ class ORCA(Policy):
 
         self.sim.doStep()
         action = ActionXY(*self.sim.getAgentVelocity(0))
-
         self.last_state = state
 
         return action
